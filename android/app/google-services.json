@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "535735543657",
+    "project_id": "projet-l3-417fd",
+    "storage_bucket": "projet-l3-417fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:535735543657:android:a223454dee2a26e6677ff8",
+        "android_client_info": {
+          "package_name": "com.charles.tutore_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "535735543657-6s6gk6aooht5umj49b73bdpoq8o0fo0s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.charles.tutore_app",
+            "certificate_hash": "4212e9844f6d72262e8d7e0f31f9cc73122b064a"
+          }
+        },
+        {
+          "client_id": "535735543657-45gdkemqa1vod8uqioj8s77me7ib2648.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwSmBiyqkQLaii1Pua0n0AsDEpQKwgdEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "535735543657-45gdkemqa1vod8uqioj8s77me7ib2648.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
