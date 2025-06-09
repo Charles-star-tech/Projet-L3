@@ -4,7 +4,7 @@ import 'package:tutore_vrais/components/my_button.dart';
 import 'package:tutore_vrais/components/my_textfield.dart';
 import 'package:tutore_vrais/components/square_tile.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:io' show Platform;
+//import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 
