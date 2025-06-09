@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:tutore_vrais/pages/Settings_page.dart';
+import 'package:tutore_vrais/pages/admin_home_page.dart';
+import 'package:tutore_vrais/pages/ajout_mot_page.dart';
 import 'package:tutore_vrais/pages/auth_page.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:tutore_vrais/pages/profile_page.dart';
+import 'package:tutore_vrais/pages/users_list_page.dart';
 import 'firebase_options.dart';
 
-void main() async  {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Empêche l'initialisation multiple
   if (Firebase.apps.isEmpty) {
@@ -16,12 +21,19 @@ void main() async  {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  @override
 
+  @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home:AuthPage(),
+      home: AuthPage(),
+      routes: {
+        '/home': (context) => AdminHomePage(),
+        '/ajoutmot': (context) => AjoutMotPage(),
+        '/settingspage': (context) => SettingsPage(),
+        //'/profile': (context) => ProfilePage(),
+        '/users': (context) => UsersListPage(),
+      },
     );
   }
 }

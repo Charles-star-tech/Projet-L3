@@ -1,22 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+//import 'package:fl_fire_auth/utils/auth_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tutore_vrais/pages/ajout_mot_page.dart';
+
 import 'package:flutter/material.dart';
 
 class AdminHomePage extends StatefulWidget {
-  const AdminHomePage({super.key});
+  AdminHomePage({super.key});
 
   @override
   _AdminHomePageState createState() => _AdminHomePageState();
 }
 
 class _AdminHomePageState extends State<AdminHomePage> {
-  // Contrôleurs pour gérer les champs de texte
   final TextEditingController _taskController = TextEditingController();
   final TextEditingController _wordController = TextEditingController();
 
-  // Liste pour stocker les tâches et mots ajoutés
-  List<Map<String, String>> _items = [];
+  final List<Map<String, String>> _items = [];
 
   void _showAddMenu() {
-    // Réinitialiser les contrôleurs
     _taskController.clear();
     _wordController.clear();
 
@@ -37,7 +39,6 @@ class _AdminHomePageState extends State<AdminHomePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Indicateur de modal
               Container(
                 width: 40,
                 height: 4,
@@ -49,10 +50,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
               SizedBox(height: 20),
               Text(
                 'Ajouter une tâche et un mot',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
               TextField(
@@ -88,7 +86,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _addItem(),
+                      onPressed: _addItem,
                       child: Text('Ajouter'),
                     ),
                   ),
@@ -110,8 +108,6 @@ class _AdminHomePageState extends State<AdminHomePage> {
         });
       });
       Navigator.pop(context);
-
-      // Afficher un message de confirmation
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Tâche et mot ajoutés avec succès !'),
@@ -119,7 +115,6 @@ class _AdminHomePageState extends State<AdminHomePage> {
         ),
       );
     } else {
-      // Afficher un message d'erreur
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Veuillez remplir tous les champs'),
@@ -162,10 +157,15 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   @override
   void dispose() {
-    // Libérer les contrôleurs
     _taskController.dispose();
     _wordController.dispose();
     super.dispose();
+  }
+
+  final user = FirebaseAuth.instance.currentUser!;
+
+  void signUserOut() {
+    FirebaseAuth.instance.signOut();
   }
 
   @override
@@ -176,82 +176,128 @@ class _AdminHomePageState extends State<AdminHomePage> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         elevation: 2,
+        actions: [
+          IconButton(
+            onPressed: signUserOut,
+            icon: Icon(Icons.logout),
+            tooltip: 'Déconnexion',
+          ),
+        ],
       ),
-      body: _items.isEmpty
-          ? Center(
+      drawer: Drawer(
+        backgroundColor: Colors.deepOrange,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.admin_panel_settings,
-              size: 80,
-              color: Colors.grey[400],
+            DrawerHeader(
+              child: Icon(Icons.favorite, size: 48, color: Colors.white),
             ),
-            SizedBox(height: 16),
-            Text(
-              'Bienvenue, Administrateur!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+            ListTile(
+              leading: Icon(Icons.home, color: Colors.white),
+              title: Text("Accueil", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pushNamed(context, '/home');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.settings, color: Colors.white),
+              title: Text("Paramètre", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pushNamed(context, '/settingspage');
+              },
+            ),
+
+            ListTile(
+              leading: Icon(Icons.library_add),
+              title: Text("Ajouter un mot"),
+              onTap: () => Navigator.pushNamed(context, '/ajoutmot'),
+            ),
+
+
+            ListTile(
+              leading: Icon(Icons.account_box_outlined, color: Colors.white),
+              title: Text("Profil", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pushNamed(context, '/profile');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.people, color: Colors.white),
+              title: Text(
+                "Utilisateurs",
+                style: TextStyle(color: Colors.white),
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Aucune tâche ajoutée pour le moment',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[500],
-              ),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _showAddMenu,
-              icon: Icon(Icons.add),
-              label: Text('Ajouter une tâche'),
+              onTap: () {
+                Navigator.pushNamed(context, '/users');
+              },
             ),
           ],
         ),
-      )
+      ),
+      body: _items.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.admin_panel_settings,
+                    size: 80,
+                    color: Colors.grey[400],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Bienvenue, Administrateur!',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Aucune tâche ajoutée pour le moment',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: _showAddMenu,
+                    icon: Icon(Icons.add),
+                    label: Text('Ajouter une tâche'),
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: _items.length,
-        itemBuilder: (context, index) {
-          final item = _items[index];
-          return Card(
-            margin: EdgeInsets.only(bottom: 12),
-            elevation: 2,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text(
-                  '${index + 1}',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              title: Text(
-                item['task']!,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                'Mot: ${item['word']}',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-              trailing: IconButton(
-                onPressed: () => _deleteItem(index),
-                icon: Icon(Icons.delete, color: Colors.red),
-              ),
+              padding: EdgeInsets.all(16),
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                final item = _items[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 12),
+                  elevation: 2,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue,
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    title: Text(
+                      item['task']!,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      'Mot: ${item['word']}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    trailing: IconButton(
+                      onPressed: () => _deleteItem(index),
+                      icon: Icon(Icons.delete, color: Colors.red),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddMenu,
-        child: Icon(Icons.add),
-        tooltip: 'Ajouter une tâche',
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
     );
   }
 }
