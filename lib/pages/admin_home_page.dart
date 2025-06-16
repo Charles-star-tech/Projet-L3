@@ -2,8 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 //import 'package:fl_fire_auth/utils/auth_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tutore_vrais/pages/ajout_mot_page.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:tutore_vrais/pages/info_page.dart';
+import 'package:tutore_vrais/pages/profile_page.dart';
 
 import 'package:flutter/material.dart';
+
+import '../Services/jeux.dart';
 
 class AdminHomePage extends StatefulWidget {
   AdminHomePage({super.key});
@@ -25,9 +30,9 @@ class _AdminHomePageState extends State<AdminHomePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      // shape: RoundedRectangleBorder(
+      //   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      // ),
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
@@ -118,7 +123,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Veuillez remplir tous les champs'),
-          backgroundColor: Colors.red,
+          backgroundColor: Color.fromARGB(255, 115, 160, 238),
         ),
       );
     }
@@ -144,7 +149,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Élément supprimé'),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: Color.fromRGBO(25, 52, 30, 200),
                 ),
               );
             },
@@ -185,11 +190,11 @@ class _AdminHomePageState extends State<AdminHomePage> {
         ],
       ),
       drawer: Drawer(
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: Color.alphaBlend(Colors.lightBlue, Colors.purpleAccent),
         child: Column(
           children: [
             DrawerHeader(
-              child: Icon(Icons.favorite, size: 48, color: Colors.white),
+              child: Icon(Icons.account_box_outlined, size: 48, color: Colors.white),
             ),
             ListTile(
               leading: Icon(Icons.home, color: Colors.white),
@@ -199,27 +204,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.settings, color: Colors.white),
-              title: Text("Paramètre", style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pushNamed(context, '/settingspage');
-              },
-            ),
-
-            ListTile(
-              leading: Icon(Icons.library_add),
-              title: Text("Ajouter un mot"),
+              leading: Icon(Icons.library_add, color: Colors.white),
+              title: Text("Ajouter un mot", 
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () => Navigator.pushNamed(context, '/ajoutmot'),
             ),
 
-
-            ListTile(
-              leading: Icon(Icons.account_box_outlined, color: Colors.white),
-              title: Text("Profil", style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pushNamed(context, '/profile');
-              },
-            ),
             ListTile(
               leading: Icon(Icons.people, color: Colors.white),
               title: Text(
@@ -230,74 +221,56 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 Navigator.pushNamed(context, '/users');
               },
             ),
+
+            ListTile(
+              leading: Icon(Icons.account_box_outlined, color: Colors.white),
+              title: Text("Profil", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pushNamed(context, '/profile');
+              },
+            ),
+
+            ListTile(
+              leading: Icon(Icons.settings, color: Colors.white),
+              title: Text("Paramètre", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
+
+            ListTile(
+              leading: Icon(Icons.share, color: Colors.white),
+              title: Text("Partager l'application", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Share.share('Télécharge mon application ici : https://drive.google.com/file/d/1XyzABC123456/view?usp=sharing');
+              },
+
+            ),
+            ListTile(
+              leading: Icon(Icons.info, color: Colors.white),
+              title: Text("Info", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pushNamed(context, '/info');
+              },
+            ),
+            const Spacer(),
+
+            // ✅ Bouton de déconnexion en bas à droite
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16.0, bottom: 16.0),
+                child: IconButton(
+                  onPressed: signUserOut,
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  tooltip: 'Déconnexion',
+                ),
+              ),
+            ),
           ],
         ),
       ),
-      body: _items.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Bienvenue, Administrateur!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Aucune tâche ajoutée pour le moment',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[500]),
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _showAddMenu,
-                    icon: Icon(Icons.add),
-                    label: Text('Ajouter une tâche'),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: _items.length,
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                return Card(
-                  margin: EdgeInsets.only(bottom: 12),
-                  elevation: 2,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blue,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    title: Text(
-                      item['task']!,
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      'Mot: ${item['word']}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    trailing: IconButton(
-                      onPressed: () => _deleteItem(index),
-                      icon: Icon(Icons.delete, color: Colors.red),
-                    ),
-                  ),
-                );
-              },
-            ),
+      body: const JeuxDashboard(),
     );
   }
 }

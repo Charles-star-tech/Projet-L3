@@ -1,12 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../components/my_button.dart';
 import '../components/my_textfield.dart';
 import '../components/square_tile.dart';
-//import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-
 
 class RegisterPage extends StatefulWidget {
   final Function()? onTap;
@@ -17,80 +16,81 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-
-  //controlleur de saisi de text
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
-  //sign user in method
+  // 🔁 Fonction d'inscription
   void signUserUp() async {
-
-    //show loading circle
+    // 🔁 Affiche un indicateur de chargement
     showDialog(
       context: context,
-      builder: (context) {
-        return const Center(child: CircularProgressIndicator(),
-        );
-      },
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
-    //try sign in
-    try {
-      //verifier si le mot de passe est correct
-      if (passwordController.text == confirmPasswordController.text) {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: emailController.text,
-          password: passwordController.text,
-        );
-      } else {
-        //show message d'erreur
-        showErrorMessage("Mot de passe pas correct");
-      }
-      //pop the navigation
+
+    // ✳️ Vérifie les champs
+    if (nameController.text.trim().isEmpty) {
       Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      //pop the navigation
-      Navigator.pop(context);
-      //show erreur message
-      showErrorMessage(e.code);
+      return showErrorMessage("Veuillez entrer votre nom");
     }
 
+    if (passwordController.text != confirmPasswordController.text) {
+      Navigator.pop(context);
+      return showErrorMessage("Les mots de passe ne correspondent pas");
+    }
+
+    try {
+      // 🔐 Crée le compte utilisateur
+      UserCredential userCredential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // 💾 Ajoute les infos dans Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'role': 'user', // 👈 Tu peux changer ce rôle par défaut si nécessaire
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      Navigator.pop(context);
+      showErrorMessage(e.message ?? "Erreur inconnue");
+    }
   }
-  //message d'erreur
+
+  // ⚠️ Affiche une erreur
   void showErrorMessage(String message) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.deepPurple,
-          title: Center(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      },
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.deepPurple,
+        title: Center(
+          child: Text(message, style: const TextStyle(color: Colors.white)),
+        ),
+      ),
     );
   }
+
+  // 👉 Connexion avec Google (facultatif)
   Future<void> signInWithGoogle() async {
     try {
-      GoogleSignIn googleSignIn;
-
-      if (kIsWeb) {
-        // 👇 Pour le Web uniquement : spécifie le clientId Web
-        googleSignIn = GoogleSignIn(
-          clientId: 'TON_CLIENT_ID_WEB.apps.googleusercontent.com',
-        );
-      } else {
-        // 👇 Pour Android/iOS : pas besoin de clientId
-        googleSignIn = GoogleSignIn();
-      }
+      GoogleSignIn googleSignIn = kIsWeb
+          ? GoogleSignIn(
+          clientId: 'TON_CLIENT_ID_WEB.apps.googleusercontent.com')
+          : GoogleSignIn();
 
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return; // L'utilisateur a annulé
+      if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final googleAuth = await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -103,7 +103,6 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,100 +111,75 @@ class _RegisterPageState extends State<RegisterPage> {
         child: Center(
           child: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children:[
+              children: [
                 const SizedBox(height: 25),
-
-                //logo
-                const Icon(
-                  Icons.lock,
-                  size: 50,
-                ),
-
+                const Icon(Icons.lock, size: 50),
                 const SizedBox(height: 25),
-
-                //Le texte de bienvenu
                 Text(
                   'Vous pouvez créer un compte',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 16),
                 ),
-
                 const SizedBox(height: 25),
 
-                //email textfield
+                // 🔹 Champ nom
+                MyTextfield(
+                  controller: nameController,
+                  obscureText: false,
+                  hintText: 'Nom',
+                ),
+                const SizedBox(height: 25),
+
+                // 🔹 Champ email
                 MyTextfield(
                   controller: emailController,
                   obscureText: false,
                   hintText: 'Email',
                 ),
-
-
                 const SizedBox(height: 10),
 
-                //password textfield
+                // 🔹 Mot de passe
                 MyTextfield(
                   controller: passwordController,
                   obscureText: true,
                   hintText: 'Mot de passe',
                 ),
+                const SizedBox(height: 10),
 
-                //confimez le mot de passse
+                // 🔹 Confirmation mot de passe
                 MyTextfield(
                   controller: confirmPasswordController,
                   obscureText: true,
                   hintText: 'Confirmez le mot de passe',
                 ),
-
                 const SizedBox(height: 25),
 
-                //sign in button
-
+                // 🔘 Bouton s'inscrire
                 MyButton(
-                  text: 'se connecter',
+                  text: 'S\'inscrire',
                   onTap: signUserUp,
                 ),
-
                 const SizedBox(height: 50),
 
-
-                //or continue with
+                // 🔻 Texte "ou continuer avec"
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: Divider(
-                            thickness: 0.5,
-                            color: Colors.grey[400],
-                          )
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 70.0),
-                        child: Text(
-                          'Continuer avec',
-                          style: TextStyle(color: Colors.green[500]),
-                        ),
-                      ),
-                      Expanded(
-                          child: Divider(
-                            thickness: 0.5,
-                            color: Colors.grey[400],
-                          )
-                      ),
-                    ],
-                  ),
+                  child: Row(children: [
+                    Expanded(child: Divider(thickness: 0.5, color: Colors.grey[400])),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text('Continuer avec',
+                          style: TextStyle(color: Colors.green[500])),
+                    ),
+                    Expanded(child: Divider(thickness: 0.5, color: Colors.grey[400])),
+                  ]),
                 ),
 
                 const SizedBox(height: 50),
 
-                //google + apple sign in button
+                // 🔘 Boutons Google et Apple
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    //google button
                     SquareTile(
                       imagePath: 'assets/images/google.png',
                       onTap: () async {
@@ -216,45 +190,32 @@ class _RegisterPageState extends State<RegisterPage> {
                         }
                       },
                     ),
-
-                    SizedBox(width: 25),
-
-                    //apple button
+                    const SizedBox(width: 25),
                     SquareTile(imagePath: 'assets/images/apple.png'),
                   ],
                 ),
-
                 const SizedBox(height: 50),
 
-                //not a member? registre now
+                // 🔹 Lien pour aller à la page de login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "J'ai un compte",
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
+                    Text("J'ai déjà un compte", style: TextStyle(color: Colors.grey[700])),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: widget.onTap,
                       child: const Text(
-                        "S'inscrire",
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        "Se connecter",
+                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 )
-
               ],
             ),
-
           ),
         ),
       ),
     );
   }
 }
-

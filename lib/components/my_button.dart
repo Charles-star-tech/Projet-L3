@@ -10,6 +10,7 @@ class MyButton extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      
       // Action to perform when the button is tapped
 
     onTap: onTap,  //  Appelle la fonction passée

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:tutore_vrais/Services/jeux.dart';
+import 'package:tutore_vrais/Services/mots_page.dart';
+import 'package:tutore_vrais/Services/taches_page.dart';
 import 'package:tutore_vrais/pages/Settings_page.dart';
 import 'package:tutore_vrais/pages/admin_home_page.dart';
 import 'package:tutore_vrais/pages/ajout_mot_page.dart';
 import 'package:tutore_vrais/pages/auth_page.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:tutore_vrais/pages/info_page.dart';
 import 'package:tutore_vrais/pages/profile_page.dart';
 import 'package:tutore_vrais/pages/users_list_page.dart';
 import 'firebase_options.dart';
@@ -31,8 +35,13 @@ class MyApp extends StatelessWidget {
         '/home': (context) => AdminHomePage(),
         '/ajoutmot': (context) => AjoutMotPage(),
         '/settingspage': (context) => SettingsPage(),
-        //'/profile': (context) => ProfilePage(),
+        'jeux': (context) => JeuxDashboard(),
+        '/profile': (context) => ProfilePage(),
+        '/users': (context) => const UsersListPage(),
         '/users': (context) => UsersListPage(),
+        '/info': (context) => const InfoPage(),
+        'taches': (context) => TachesPage(),
+        'mots': (context) => MotsPage(),
       },
     );
   }
