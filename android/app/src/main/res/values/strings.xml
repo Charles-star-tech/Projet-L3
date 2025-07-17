@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">tutore_app</string>
+    <string name="facebook_app_id">657549100591524</string>
+    <string name="facebook_client_token">QhLphE9tciYujX4PMfnMcxIrBko=</string> <!-- Replace TON_CLIENT_TOKEN with your actual client token -->
+    <string name="fb_login_protocol_scheme">fb657549100591524</string>
+</resources>

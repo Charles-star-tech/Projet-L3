@@ -20,29 +20,39 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: ListView(
         children: [
+          // 🔔 Activation/Désactivation des notifications
           SwitchListTile(
             title: const Text('Notifications'),
+            subtitle: const Text("Recevoir des rappels et alertes"),
             value: _notificationsEnabled,
             onChanged: (value) {
               setState(() {
                 _notificationsEnabled = value;
+                // 🔁 Ici tu peux sauvegarder dans les préférences ou Firebase
               });
             },
           ),
+
+          // 🌙 Mode sombre
           SwitchListTile(
             title: const Text('Mode sombre'),
+            subtitle: const Text("Activer le thème sombre"),
             value: _darkMode,
             onChanged: (value) {
               setState(() {
                 _darkMode = value;
+                // 👉 Tu peux appeler ici un ThemeNotifier pour changer dynamiquement
               });
             },
           ),
+
+          // 🌍 Choix de la langue
           ListTile(
             title: const Text('Langue'),
+            subtitle: Text("Langue actuelle : $_language"),
             trailing: DropdownButton<String>(
               value: _language,
-              items: <String>['Français', 'Anglais']
+              items: ['Français', 'Mooré']
                   .map((lang) => DropdownMenuItem(
                         value: lang,
                         child: Text(lang),
@@ -51,6 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: (value) {
                 setState(() {
                   if (value != null) _language = value;
+                  // 👉 Tu peux gérer la traduction ici (ex: avec easy_localization)
                 });
               },
             ),

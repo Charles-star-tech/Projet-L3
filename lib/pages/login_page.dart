@@ -1,5 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:tutore_vrais/components/my_button.dart';
 import 'package:tutore_vrais/components/my_textfield.dart';
 import 'package:tutore_vrais/components/square_tile.dart';
@@ -75,14 +81,17 @@ class _LoginPageState extends State<LoginPage> {
       GoogleSignIn googleSignIn;
 
       if (kIsWeb) {
-        // 👇 Pour le Web uniquement : spécifie le clientId Web
+        // Pour le Web uniquement : spécifie le clientId Web
         googleSignIn = GoogleSignIn(
           clientId: 'TON_CLIENT_ID_WEB.apps.googleusercontent.com',
         );
       } else {
-        // 👇 Pour Android/iOS : pas besoin de clientId
+        // Pour Android/iOS : pas besoin de clientId
         googleSignIn = GoogleSignIn();
       }
+
+      //Déconnecter tout compte Google déjà connecté pour forcer la sélection d’un compte
+      await googleSignIn.signOut();
 
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return; // L'utilisateur a annulé
@@ -97,6 +106,69 @@ class _LoginPageState extends State<LoginPage> {
       await FirebaseAuth.instance.signInWithCredential(credential);
     } catch (e) {
       showErrorMessage("Erreur Google Sign-In : $e");
+    }
+  }
+
+  // Génère un nonce aléatoire pour l'authentification Apple
+  // Génère un nonce aléatoire sécurisé
+  String _generateNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  // Hash SHA-256 du nonce
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  Future<void> signInWithApple() async {
+    try {
+      // Crée un nonce aléatoire (sécurisé)
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      // Démarre l'authentification Apple
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      // Crée les identifiants Firebase à partir d'Apple
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      // Authentifie l'utilisateur avec Firebase
+      await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    } catch (e) {
+      // Gestion des erreurs
+      print("Erreur Apple Sign-In: $e");
+    }
+  }
+  //Connetion avec Facebook (facultatif)
+  Future<void> signInWithFacebook() async {
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        final accessToken = result.accessToken;
+        final credential = FacebookAuthProvider.credential(accessToken!.tokenString);
+
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      } else if (result.status == LoginStatus.cancelled) {
+        print("Connexion Facebook annulée.");
+      } else {
+        print("Erreur Facebook : ${result.message}");
+      }
+    } catch (e) {
+      print("Erreur Facebook Sign-In : $e");
     }
   }
 
@@ -209,6 +281,20 @@ class _LoginPageState extends State<LoginPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    //facebook button
+                    SquareTile(
+                      imagePath: 'assets/images/facebook.png',
+                      onTap: () async {
+                        try {
+                          await signInWithFacebook();
+                        } catch (e) {
+                          print("Erreur Facebook Sign-In: $e");
+                        }
+                      },
+                    ),
+
+                    SizedBox(width: 25),
+
                     //google button
                     SquareTile(
                       imagePath: 'assets/images/google.png',
@@ -224,7 +310,16 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(width: 25),
 
                     //apple button
-                    SquareTile(imagePath: 'assets/images/apple.png'),
+                    SquareTile(
+                      imagePath: 'assets/images/apple.png',
+                      onTap: () async {
+                        try {
+                          await signInWithApple();
+                        } catch (e) {
+                          print("Erreur Apple Sign-In: $e");
+                        }
+                      },
+                    ),
                   ],
                 ),
 
