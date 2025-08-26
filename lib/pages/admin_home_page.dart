@@ -1,10 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:fl_fire_auth/utils/auth_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:tutore_vrais/pages/ajout_mot_page.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:tutore_vrais/pages/info_page.dart';
-import 'package:tutore_vrais/pages/profile_page.dart';
 
 import 'package:flutter/material.dart';
 
@@ -23,6 +18,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   final List<Map<String, String>> _items = [];
 
+  // ignore: unused_element
   void _showAddMenu() {
     _taskController.clear();
     _wordController.clear();
@@ -129,6 +125,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
     }
   }
 
+  // ignore: unused_element
   void _deleteItem(int index) {
     showDialog(
       context: context,

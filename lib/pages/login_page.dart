@@ -14,7 +14,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 
-
+  // Génère un nonce aléatoire sécurisé
 class LoginPage extends StatefulWidget {
   final Function()? onTap;
   const LoginPage({super.key, required this.onTap});
@@ -23,6 +23,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+//Cette classe gère la page de connexion
 class _LoginPageState extends State<LoginPage> {
 
   //controlleur de saisi de text
@@ -76,6 +77,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  //connection avec Google
   Future<void> signInWithGoogle() async {
     try {
       GoogleSignIn googleSignIn;
@@ -123,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
-
+  //connection avec Apple (facultatif)
   Future<void> signInWithApple() async {
     try {
       // Crée un nonce aléatoire (sécurisé)
@@ -172,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
+  // Affiche le dialogue pour la tâche sélectionnée
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tutore_vrais/Services/amalgame_page.dart';
+import 'package:tutore_vrais/Services/error_page.dart';
 import 'package:tutore_vrais/Services/jeux.dart';
 import 'package:tutore_vrais/Services/mots_page.dart';
+import 'package:tutore_vrais/Services/succes_page.dart';
 import 'package:tutore_vrais/Services/taches_page.dart';
 import 'package:tutore_vrais/pages/Settings_page.dart';
 import 'package:tutore_vrais/pages/admin_home_page.dart';
@@ -38,10 +41,12 @@ class MyApp extends StatelessWidget {
         'jeux': (context) => JeuxDashboard(),
         '/profile': (context) => ProfilePage(),
         '/users': (context) => const UsersListPage(),
-        '/users': (context) => UsersListPage(),
         '/info': (context) => const InfoPage(),
         'taches': (context) => TachesPage(),
         'mots': (context) => MotsPage(),
+        'succes': (context) => SuccesPage(tache: tache),
+        'amalgame': (context) => AmalgamePage(),
+        'error': (context) => ErrorPage(),
       },
     );
   }

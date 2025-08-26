@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tutore_vrais/Services/mots_page.dart';
 import 'package:tutore_vrais/Services/score_page.dart';
-import 'package:tutore_vrais/Services/score_tracker.dart';
+import 'package:tutore_vrais/Services/score_tracker.dart' as score_tracker;
 import 'package:tutore_vrais/Services/taches_page.dart';
 
 class JeuxDashboard extends StatelessWidget {
@@ -53,11 +52,16 @@ class JeuxDashboard extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => ScorePage(
                       transcriptionsCorrectes:
-                          ScoreTracker.transcriptionsCorrectes,
+                          score_tracker.ScoreTracker.transcriptionsCorrectes,
                       transcriptionsIncorrectes:
-                          ScoreTracker.transcriptionsIncorrectes,
-                      tachesCorrectes: ScoreTracker.tachesCorrectes,
-                      tachesIncorrectes: ScoreTracker.tachesIncorrectes,
+                          score_tracker.ScoreTracker.transcriptionsIncorrectes,
+                      transcriptionsAmalgame:
+                          score_tracker.ScoreTracker.transcriptionsAmalgame,
+                      totalTaches: score_tracker.ScoreTracker.totalTaches,
+                      amalgame: score_tracker.ScoreTracker.amalgame,
+                      error: score_tracker.ScoreTracker.error,
+                      success: score_tracker.ScoreTracker.success,
+                      transcriptionsTotal: score_tracker.ScoreTracker.transcriptionsTotal,
                     ),
                   ),
                 );
