@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tutore_vrais/Services/score_tracker.dart';
-import 'package:tutore_vrais/Services/succes_page.dart';
-import 'package:tutore_vrais/Services/amalgame_page.dart';
-import 'package:tutore_vrais/Services/error_page.dart';
 
 class Tache {
   final int id;
@@ -41,7 +38,7 @@ class Tache {
 
 class TachesPage extends StatelessWidget {
   const TachesPage({super.key});
-  
+
   BuildContext? get dialogContext => null;
 
   // Récupère les tâches depuis Firestore
@@ -51,7 +48,7 @@ class TachesPage extends StatelessWidget {
         .orderBy('id')
         .get();
 
-        // ✅ Filtrer les documents vides avant de mapper
+    // ✅ Filtrer les documents vides avant de mapper
     return snapshot.docs
         .where((doc) => doc.data() != null)
         .map((doc) => Tache.fromFirestore(doc))
@@ -108,33 +105,24 @@ class TachesPage extends StatelessWidget {
 
                 // ✅ Lancer la navigation APRÈS fermeture du dialog
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  // ❌ Ne PAS utiliser "context" ici (lié au dialog ou alert)
                   // ✅ Utilise le context de la page principale
                   if (success) {
                     ScoreTracker.success++;
-                    Navigator.push(
-                      parentContext, // 👈 UTILISE le context sauvegardé
-                      MaterialPageRoute(builder: (_) => SuccesPage(tache: tache)),
-                    );
+                    _showSuccessDialog(context, tache);
                   } else if (existsAlternate) {
                     ScoreTracker.error++;
-                    Navigator.push(
-                      parentContext, // 👈 UTILISE le context sauvegardé
-                      MaterialPageRoute(builder: (_) => const AmalgamePage()),
-                    );
+                    _showAmalgameDialog(parentContext, tache);
                   } else {
                     ScoreTracker.error++;
-                    Navigator.push(
-                      parentContext, // 👈 UTILISE le context sauvegardé
-                      MaterialPageRoute(builder: (_) => const ErrorPage()),
-                    );
+                    _showErreurDialog(parentContext, tache);
                   }
                 });
               },
               child: const Text('Valider'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(),
+              onPressed: () =>
+                  Navigator.of(dialogContext, rootNavigator: true).pop(),
               child: const Text('Annuler'),
             ),
           ],
@@ -143,98 +131,132 @@ class TachesPage extends StatelessWidget {
     );
   }
 
-
-
-
   // ✅ Succès
-  // void _showSuccessDialog(BuildContext context, Tache tache) {
-  //   ScoreTracker.incrementSuccess(); // compteur
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text("Bravo 🎉"),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           Image.network(tache.imageUrl, height: 120),
-  //           const SizedBox(height: 10),
-  //           const Text(
-  //             "Bonne transcription !",
-  //             style: TextStyle(
-  //               color: Colors.green,
-  //               fontWeight: FontWeight.bold,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text("OK"),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  void _showSuccessDialog(BuildContext context, Tache tache) {
+    ScoreTracker.incrementSuccess(); // compteur
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Bravo 🎉"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.network(tache.imageUrl, height: 120),
+            const SizedBox(height: 10),
+            Text(tache.motMoore),
+            ...tache.sens.map((s) => Text(s)).toList(),
+            const SizedBox(height: 10),
+            const Text(
+              "Bonne transcription !",
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ⚠️ Amalgame
-  // void _showAmalgameDialog(BuildContext context, Tache tache) {
-  //   ScoreTracker.incrementAmalgame(); // compteur
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text("Mot amalgamé ⚠️"),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           Image.network(tache.imageUrl, height: 120),
-  //           const SizedBox(height: 10),
-  //           const Text(
-  //             "Bonne transcription, mais mauvais sens !",
-  //             style: TextStyle(
-  //               color: Colors.orange,
-  //               fontWeight: FontWeight.bold,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text("OK"),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  void _showAmalgameDialog(BuildContext context, Tache tache) {
+    ScoreTracker.incrementAmalgame(); // compteur
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Mot amalgamé ⚠️"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.network(tache.imageUrl, height: 120),
+            const SizedBox(height: 10),
+            Text(
+              "Tu as entré une transcription valide,\nmais ce n'est pas celle attendue.",
+              style: TextStyle(
+                color: Colors.orange[700],
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Réponse attendue :",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              tache.motMoore,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.green,
+              ),
+            ),
+            ...tache.sens.map((s) => Text(s)).toList(),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ❌ Erreur
-  // void _showErreurDialog(BuildContext context, Tache tache) {
-  //   ScoreTracker.incrementError(); // compteur
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text("Erreur ❌"),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           Image.network(tache.imageUrl, height: 120),
-  //           const SizedBox(height: 10),
-  //           const Text(
-  //             "Transcription inconnue.",
-  //             style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text("OK"),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  void _showErreurDialog(BuildContext context, Tache tache) {
+    ScoreTracker.incrementError(); // compteur
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Erreur ❌"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.network(tache.imageUrl, height: 120),
+            const SizedBox(height: 10),
+            const Text(
+              "Ce n'était pas la bonne réponse.",
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "La bonne réponse était :",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              tache.motMoore,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.green,
+              ),
+            ),
+            ...tache.sens.map((s) => Text(s)).toList(),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   // Affiche le dialogue avec l'image et le champ texte + bouton Valider
 

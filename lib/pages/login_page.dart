@@ -10,11 +10,16 @@ import 'package:tutore_vrais/components/my_button.dart';
 import 'package:tutore_vrais/components/my_textfield.dart';
 import 'package:tutore_vrais/components/square_tile.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-//import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+//final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+final GoogleSignIn googleSignIn = GoogleSignIn(
+  clientId: kIsWeb
+      ? "TON_CLIENT_ID_WEB.apps.googleusercontent.com"
+      : null, // pour Android pas besoin
+);
 
-  // Génère un nonce aléatoire sécurisé
+
 class LoginPage extends StatefulWidget {
   final Function()? onTap;
   const LoginPage({super.key, required this.onTap});
@@ -23,80 +28,32 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-//Cette classe gère la page de connexion
 class _LoginPageState extends State<LoginPage> {
-
-  //controlleur de saisi de text
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  //sign user in method
-  void signUserIn() async {
-
-    //show loading circle
-    showDialog(
-      context: context,
-      builder: (context) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      },
-    );
-    //try sign in
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text,
-        password: passwordController.text,
-      );
-      //pop the navigation
-      Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      //pop the navigation
-      Navigator.pop(context);
-      //show erreur message
-      showErrorMessage("${e.code} - ${e.message}");
-      //showErrorMessage(e.code);
-    }
+  @override
+  void initState() {
+    super.initState();
+    //initGoogleSignIn();
   }
 
-  //message d'erreur
-  void showErrorMessage(String message) {
-    showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            backgroundColor: Colors.deepPurple,
-            title: Center(
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          );
-        },
-    );
-  }
+  // Future<void> initGoogleSignIn() async {
+  //   if (!googleSignIn.isInitialized) {
+  //     await googleSignIn.initialize(
+  //       clientId: kIsWeb ? 'TON_CLIENT_ID_WEB.apps.googleusercontent.com' : null,
+  //       serverClientId: kIsWeb ? null : 'TON_SERVER_CLIENT_ID',
+  //     );
+  //   }
+  // }
 
-  //connection avec Google
   Future<void> signInWithGoogle() async {
     try {
-      GoogleSignIn googleSignIn;
-
-      if (kIsWeb) {
-        // Pour le Web uniquement : spécifie le clientId Web
-        googleSignIn = GoogleSignIn(
-          clientId: 'TON_CLIENT_ID_WEB.apps.googleusercontent.com',
-        );
-      } else {
-        // Pour Android/iOS : pas besoin de clientId
-        googleSignIn = GoogleSignIn();
-      }
-
-      //Déconnecter tout compte Google déjà connecté pour forcer la sélection d’un compte
-      await googleSignIn.signOut();
-
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return; // L'utilisateur a annulé
+      if (googleUser == null) {
+        print("Connexion annulée.");
+        return;
+      }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
@@ -106,33 +63,64 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      print("Connecté via Google : ${currentUser?.displayName} (${currentUser?.email})");
     } catch (e) {
+      print("Erreur Google Sign-In : $e");
       showErrorMessage("Erreur Google Sign-In : $e");
+      return;
     }
   }
 
-  // Génère un nonce aléatoire pour l'authentification Apple
-  // Génère un nonce aléatoire sécurisé
-  String _generateNonce([int length = 32]) {
-    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+
+  void signUserIn() async {
+    showDialog(
+      context: context,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+    } on FirebaseAuthException catch (e) {
+      showErrorMessage("${e.code} - ${e.message}");
+    } finally {
+      Navigator.pop(context);
+    }
   }
 
-  // Hash SHA-256 du nonce
+  void showErrorMessage(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.deepPurple,
+        title: Center(
+          child: Text(message, style: const TextStyle(color: Colors.white)),
+        ),
+      ),
+    );
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
+  }
+
   String _sha256ofString(String input) {
     final bytes = utf8.encode(input);
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
-  //connection avec Apple (facultatif)
+
   Future<void> signInWithApple() async {
     try {
-      // Crée un nonce aléatoire (sécurisé)
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
-
-      // Démarre l'authentification Apple
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -140,41 +128,31 @@ class _LoginPageState extends State<LoginPage> {
         ],
         nonce: nonce,
       );
-
-      // Crée les identifiants Firebase à partir d'Apple
       final oauthCredential = OAuthProvider("apple.com").credential(
         idToken: appleCredential.identityToken,
         rawNonce: rawNonce,
       );
-
-      // Authentifie l'utilisateur avec Firebase
       await FirebaseAuth.instance.signInWithCredential(oauthCredential);
     } catch (e) {
-      // Gestion des erreurs
       print("Erreur Apple Sign-In: $e");
     }
   }
-  //Connetion avec Facebook (facultatif)
+
   Future<void> signInWithFacebook() async {
     try {
-      final LoginResult result = await FacebookAuth.instance.login();
-
+      final result = await FacebookAuth.instance.login();
       if (result.status == LoginStatus.success) {
-        final accessToken = result.accessToken;
-        final credential = FacebookAuthProvider.credential(accessToken!.tokenString);
-
+        final credential =
+        FacebookAuthProvider.credential(result.accessToken!.tokenString);
         await FirebaseAuth.instance.signInWithCredential(credential);
-      } else if (result.status == LoginStatus.cancelled) {
-        print("Connexion Facebook annulée.");
       } else {
-        print("Erreur Facebook : ${result.message}");
+        print("Login Facebook annulé ou erreur : ${result.message}");
       }
     } catch (e) {
       print("Erreur Facebook Sign-In : $e");
     }
   }
 
-  // Affiche le dialogue pour la tâche sélectionnée
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -184,174 +162,93 @@ class _LoginPageState extends State<LoginPage> {
           child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children:[
+              children: [
                 const SizedBox(height: 50),
-
-                //logo
-                const Icon(
-                  Icons.lock,
-                  size: 100,
-                ),
-
+                const Icon(Icons.lock, size: 100),
                 const SizedBox(height: 50),
-
-                //Le texte de bienvenu
-                Text(
-                  'Bienvenue',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 16,
-                  ),
-                ),
-
+                Text('Bienvenue',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 16)),
                 const SizedBox(height: 25),
-
-                //email textfield
                 MyTextfield(
                   controller: emailController,
                   obscureText: false,
                   hintText: 'Email',
                 ),
-
-
                 const SizedBox(height: 10),
-
-                //password textfield
                 MyTextfield(
                   controller: passwordController,
                   obscureText: true,
                   hintText: 'Password',
                 ),
-
-                //forgot password
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 25),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(
-                        'Mot de passe oublier',
-                        style: TextStyle(color: Colors.grey[600]),
-                      )
+                      Text('Mot de passe oublié',
+                          style: TextStyle(color: Colors.grey[600])),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 25),
-
-                //sign in button
-
-                MyButton(
-                  text: "Se connecter",
-                  onTap: signUserIn,
-                ),
-
+                MyButton(text: "Se connecter", onTap: signUserIn),
                 const SizedBox(height: 50),
-
-
-                //or continue with
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: Divider(
-                            thickness: 0.5,
-                            color: Colors.grey[400],
-                          )
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 70.0),
-                        child: Text(
-                          'Continuer avec',
-                          style: TextStyle(color: Colors.green[500]),
-                        ),
-                      ),
-                      Expanded(
-                          child: Divider(
-                            thickness: 0.5,
-                            color: Colors.grey[400],
-                          )
-                      ),
-                    ],
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 25),
+                  child: Row(children: [
+                    Expanded(
+                        child: Divider(thickness: 0.5, color: Colors.grey[400])),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 70),
+                      child: Text('Continuer avec',
+                          style: TextStyle(color: Colors.green[500])),
+                    ),
+                    Expanded(
+                        child: Divider(thickness: 0.5, color: Colors.grey[400])),
+                  ]),
                 ),
-
                 const SizedBox(height: 50),
-
-                //google + apple sign in button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    //facebook button
                     SquareTile(
                       imagePath: 'assets/images/facebook.png',
                       onTap: () async {
-                        try {
-                          await signInWithFacebook();
-                        } catch (e) {
-                          print("Erreur Facebook Sign-In: $e");
-                        }
+                        await signInWithFacebook();
                       },
                     ),
-
-                    SizedBox(width: 25),
-
-                    //google button
+                    const SizedBox(width: 25),
                     SquareTile(
                       imagePath: 'assets/images/google.png',
                       onTap: () async {
-                        try {
-                          await signInWithGoogle();
-                        } catch (e) {
-                          print("Erreur Google Sign-In: $e");
-                        }
+                        await signInWithGoogle();
                       },
                     ),
-
-                    SizedBox(width: 25),
-
-                    //apple button
+                    const SizedBox(width: 25),
                     SquareTile(
                       imagePath: 'assets/images/apple.png',
                       onTap: () async {
-                        try {
-                          await signInWithApple();
-                        } catch (e) {
-                          print("Erreur Apple Sign-In: $e");
-                        }
+                        await signInWithApple();
                       },
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 50),
-
-                //not a member? registre now
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "J'ai pas de compt",
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
+                    Text("J'ai pas de compte", style: TextStyle(color: Colors.grey[700])),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: widget.onTap,
-                      child: const Text(
-                        "s'inscrire",
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text("s'inscrire",
+                          style: TextStyle(
+                              color: Colors.blue, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 )
-
               ],
             ),
-
           ),
         ),
       ),

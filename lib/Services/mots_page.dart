@@ -41,6 +41,11 @@ class _MotsPageState extends State<MotsPage> {
   int? _selectedSensIndex;
   List<Mot> _mots = [];
   late SharedPreferences _prefs;
+  bool success = false;
+  bool existsAlternate = false;
+  bool error = false;
+
+  //bool get existsAlternate => someList.isNotEmpty;
 
   @override
   void initState() {
@@ -74,7 +79,7 @@ class _MotsPageState extends State<MotsPage> {
     }
   }
 
-//Method to validate transcription
+  //Method to validate transcription
   void _validerTranscription() {
     if (_selectedWord == null || _selectedSensIndex == null) {
       setState(() => _resultMessage = 'Veuillez choisir un mot et un sens.');
@@ -90,52 +95,64 @@ class _MotsPageState extends State<MotsPage> {
         sensLexicaux: [],
       ),
     );
+    //
 
-    bool success = false;
-    bool existsAlternate = false;
-
-    // Vérifie si la saisie correspond à la transcription du sens choisi
-    // et détecte si c’est une transcription correcte pour un autre sens.
-    for (int i = 0; i < mot.transcriptionsPhonetiques.length; i++) {
-      final t = mot.transcriptionsPhonetiques[i].toLowerCase();
-      if (t == saisie) {
-        if (i == _selectedSensIndex) {
-          success = true;
-        } else {
-          if (mot.sensLexicaux[i] == mot.sensLexicaux[_selectedSensIndex!]) {
-            success = true;
-          } else {
-            existsAlternate = true;
-          }
-          //existsAlternate = true;
-        }
-        break;
-      }
+    // ✅ Vérifie si la saisie correspond à la transcription phonétique attendue
+    if (_selectedSensIndex != null &&
+        mot.transcriptionsPhonetiques.isNotEmpty &&
+        saisie ==
+            mot.transcriptionsPhonetiques[_selectedSensIndex!].toLowerCase()) {
+      success = true;
     }
+    // 🟧 Vérifie si l’utilisateur a saisi la transcriptionNonPhonetique du mot
+    else if (saisie == mot.transcriptionNonPhonetique.toLowerCase()) {
+      existsAlternate = true;
+    }
+    // ❌ Sinon → erreur
+    else {
+      error = true;
+    }
+
+    // 📊 Mise à jour des scores
     if (success) {
-    // ✅ Bonne transcription + bon sens
-    ScoreTracker.transcriptionsCorrectes++;
-    ScoreTracker.transcriptionsTotal++;
-    ScoreTracker.success++;   // pour les tâches
-  } else if (existsAlternate) {
-    // 🟧 Transcription correcte mais mauvais sens
-    ScoreTracker.transcriptionsAmalgame++;
-    ScoreTracker.transcriptionsTotal++;
-    ScoreTracker.amalgame++;  // pour les tâches
-  } else {
-    // ❌ Mauvaise transcription
-    ScoreTracker.transcriptionsIncorrectes++;
-    ScoreTracker.transcriptionsTotal++;
-    ScoreTracker.error++;     // pour les tâches
-  }
+      ScoreTracker.transcriptionsCorrectes++;
+    } else if (existsAlternate) {
+      ScoreTracker.transcriptionsAmalgame++;
+    } else if (error) {
+      ScoreTracker.error++;
+    }
+
+    // Sauvegarde + affichage
     _saveScores();
-    _showResultDialog(context, mot, success, _selectedSensIndex);
-    setState(() {
-      _resultMessage = success ? "Bravo !" : "Erreur, essaie encore.";
-    });
+    _showResultDialog(
+      context,
+      mot,
+      success,
+      existsAlternate,
+      error,
+      _selectedSensIndex,
+    );
+
+    // setState(() {
+    //   if (success) {
+    //     _resultMessage =
+    //         "✅ Bravo ! C'est la bonne transcription et le bon sens 🎉";
+    //   } else if (existsAlternate) {
+    //     _resultMessage = "🟧 Mot amalgamé";
+    //   } else {
+    //     _resultMessage = "❌ Erreur, essaie encore.";
+    //   }
+    // });
   }
 
-  void _showResultDialog(BuildContext context, Mot mot, bool success, int? selectedIndex) {
+  void _showResultDialog(
+    BuildContext context,
+    Mot mot,
+    bool success,
+    bool existsAlternate,
+    bool error,
+    int? selectedIndex,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -158,14 +175,23 @@ class _MotsPageState extends State<MotsPage> {
                   child: Image.asset('assets/images/gain.png', height: 100),
                 ),
               const SizedBox(height: 10),
-              Text(
-                success ? '🎉 Félicitations !' : '❌ Mauvaise réponse',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Column(
+                children: [
+                  Text(
+                    success
+                        ? '🎉 Félicitations !'
+                        : existsAlternate
+                        ? 'Mot Amalgamer'
+                        : '❌ Mauvaise réponse',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
-              const SizedBox(height: 12),
+              //const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -177,9 +203,7 @@ class _MotsPageState extends State<MotsPage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Phonétiques : ${selectedIndex != null && selectedIndex < mot.transcriptionsPhonetiques.length
-                      ? mot.transcriptionsPhonetiques[selectedIndex].toLowerCase()
-                      : ''}',
+                  'Phonétiques : ${selectedIndex != null && selectedIndex < mot.transcriptionsPhonetiques.length ? mot.transcriptionsPhonetiques[selectedIndex].toLowerCase() : ''}',
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -187,9 +211,7 @@ class _MotsPageState extends State<MotsPage> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Sens lexicaux : ${selectedIndex != null && selectedIndex < mot.sensLexicaux.length
-                      ? mot.sensLexicaux[selectedIndex].toLowerCase()
-                      : ''}',
+                  'Sens lexicaux : ${selectedIndex != null && selectedIndex < mot.sensLexicaux.length ? mot.sensLexicaux[selectedIndex].toLowerCase() : ''}',
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -300,7 +322,10 @@ class _MotsPageState extends State<MotsPage> {
               onPressed: _validerTranscription,
               child: const Text('Valider'),
             ),
-
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Retour'),
+            ),
             // 5⃣ Message de résultat
             if (_resultMessage != null)
               Padding(

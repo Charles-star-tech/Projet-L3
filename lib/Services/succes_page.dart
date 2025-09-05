@@ -26,9 +26,9 @@ class _SuccesPageState extends State<SuccesPage> {
 
   @override
   Widget build(BuildContext context) {
+    // You can return an empty Scaffold or any widget as the page content
     return Scaffold(
-      appBar: AppBar(title: const Text("Succès")),
-      body: const Center(child: Text("Félicitations pour la tâche réussie !")),
+      body: Container(),
     );
   }
 
@@ -45,6 +45,9 @@ class _SuccesPageState extends State<SuccesPage> {
           children: [
             Image.network(tache.imageUrl, height: 120),
             const SizedBox(height: 10),
+            Text(tache.motMoore),
+            ...tache.sens.map((s) => Text(s)).toList(),
+            const SizedBox(height: 10),
             const Text(
               "Bonne transcription !",
               style: TextStyle(
@@ -58,11 +61,17 @@ class _SuccesPageState extends State<SuccesPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => TachesPage()),
+              );
+            },
             child: const Text("OK"),
           ),
         ],
       ),
     );
   }
+  
 }
