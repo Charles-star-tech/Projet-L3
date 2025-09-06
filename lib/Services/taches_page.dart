@@ -4,7 +4,7 @@ import 'package:tutore_vrais/Services/score_tracker.dart';
 
 class Tache {
   final int id;
-  final String motMoore;
+  final List<String> motMoore;
   final String imageUrl;
   final List<String> sens;
 
@@ -16,54 +16,57 @@ class Tache {
     required this.sens,
   });
 
-  // 🔧 Méthode pour créer un objet Tache à partir d’un document Firestore
-  factory Tache.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>?; // ✅ peut être null
-    if (data == null) {
-      throw Exception("Le document ${doc.id} est vide !");
-    }
+  // Méthode pour créer un objet Tache à partir d’une map Firestore
+  factory Tache.fromFirestore(Map<String, dynamic> data) {
+    // id peut venir en int ou en String
+    final rawId = data['id'];
+    final id = rawId is int ? rawId : (rawId is String ? int.tryParse(rawId) ?? 0 : 0);
+
+    // motMoore peut être String ou List
+    final rawMotMoore = data['motMoore'];
+    final motMoore = rawMotMoore is List
+        ? rawMotMoore.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList()
+        : (rawMotMoore is String && rawMotMoore.trim().isNotEmpty)
+            ? [rawMotMoore]
+            : <String>[];
+
+    // sens peut être String ou List
+    final rawSens = data['sens'];
+    final sens = rawSens is List
+        ? rawSens.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList()
+        : (rawSens is String && rawSens.trim().isNotEmpty)
+            ? [rawSens]
+            : <String>[];
 
     return Tache(
-      id: data['id'] ?? 0,
-      motMoore: data['motMoore'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
-      sens: data['sens'] != null
-          ? [data['sens'] as String] // ✅ transforme ton String en List<String>
-          : [],
+      id: id,
+      motMoore: motMoore,
+      imageUrl: (data['imageUrl'] ?? '').toString(),
+      sens: sens,
     );
   }
-  // ✅ Fournit les transcriptions alternatives
-  List<String> get toutesTranscriptions => sens;
 }
+// end class Tache
 
 class TachesPage extends StatelessWidget {
   const TachesPage({super.key});
 
-  BuildContext? get dialogContext => null;
-
   // Récupère les tâches depuis Firestore
   Future<List<Tache>> fetchTaches() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('taches')
-        .orderBy('id')
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('taches').orderBy('id').get();
 
-    // ✅ Filtrer les documents vides avant de mapper
     return snapshot.docs
-        .where((doc) => doc.data() != null)
-        .map((doc) => Tache.fromFirestore(doc))
+        .map((doc) => Tache.fromFirestore(doc.data()))
         .toList();
-    //return snapshot.docs.map((doc) => Tache.fromFirestore(doc)).toList();
   }
 
   // Affiche le dialogue pour la tâche sélectionnée
-  // ✅ Succès
-  void _showTacheDialog(BuildContext context, Tache tache) {
+  void _showTacheDialog(BuildContext context, Tache tache, List<Tache> allTaches) {
     final controller = TextEditingController();
     String? errorMessage;
 
-    // ✅ Garde une copie du context d'origine ici
-    final parentContext = context; // 👈 AJOUTE cette ligne
+    final parentContext = context;
 
     showDialog(
       context: context,
@@ -95,23 +98,34 @@ class TachesPage extends StatelessWidget {
                   return;
                 }
 
-                bool success = saisie == tache.motMoore.toLowerCase();
-                bool existsAlternate = tache.toutesTranscriptions
-                    .map((m) => m.toLowerCase())
-                    .contains(saisie);
+                // ✅ Vérifie si c'est le mot du tache affiché
+                bool success = tache.motMoore
+                  .map((m) => m.toLowerCase())
+                  .contains(saisie);
+
+                Tache? tacheSaisie;
+                  try {
+                    tacheSaisie = allTaches.firstWhere(
+                      (other) => other.id != tache.id &&
+                                other.motMoore.map((m) => m.toLowerCase()).contains(saisie),
+                    );
+                  } catch (e) {
+                    tacheSaisie = null; // pas trouvé
+                  }
+
+                bool existsAlternate = tacheSaisie != null;
 
                 // ✅ Ferme bien le dialog
                 Navigator.of(dialogContext, rootNavigator: true).pop();
 
                 // ✅ Lancer la navigation APRÈS fermeture du dialog
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  // ✅ Utilise le context de la page principale
                   if (success) {
                     ScoreTracker.success++;
                     _showSuccessDialog(context, tache);
                   } else if (existsAlternate) {
                     ScoreTracker.error++;
-                    _showAmalgameDialog(parentContext, tache);
+                    _showAmalgameDialog(parentContext, tache, saisie, tacheSaisie!);
                   } else {
                     ScoreTracker.error++;
                     _showErreurDialog(parentContext, tache);
@@ -131,7 +145,7 @@ class TachesPage extends StatelessWidget {
     );
   }
 
-  // ✅ Succès
+  // Succès
   void _showSuccessDialog(BuildContext context, Tache tache) {
     ScoreTracker.incrementSuccess(); // compteur
     showDialog(
@@ -143,7 +157,7 @@ class TachesPage extends StatelessWidget {
           children: [
             Image.network(tache.imageUrl, height: 120),
             const SizedBox(height: 10),
-            Text(tache.motMoore),
+            Text(tache.motMoore.join(',')),
             ...tache.sens.map((s) => Text(s)).toList(),
             const SizedBox(height: 10),
             const Text(
@@ -167,40 +181,56 @@ class TachesPage extends StatelessWidget {
     );
   }
 
-  // ⚠️ Amalgame
-  void _showAmalgameDialog(BuildContext context, Tache tache) {
-    ScoreTracker.incrementAmalgame(); // compteur
+  // Amalgame
+  void _showAmalgameDialog(
+    BuildContext context,
+    Tache tacheSelectionnee,
+    String saisie, // le mot saisi par l'utilisateur
+    Tache tacheSaisie, // le Tache correspondant au mot saisi dans la collection
+  ) {
+    ScoreTracker.incrementAmalgame();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Mot amalgamé ⚠️"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.network(tache.imageUrl, height: 120),
-            const SizedBox(height: 10),
-            Text(
-              "Tu as entré une transcription valide,\nmais ce n'est pas celle attendue.",
-              style: TextStyle(
-                color: Colors.orange[700],
-                fontWeight: FontWeight.bold,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ✅ Image et détails du mot attendu
+              const Text(
+                "Réponse attendue :",
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Réponse attendue :",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              tache.motMoore,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.green,
+              Image.network(tacheSelectionnee.imageUrl, height: 120),
+              const SizedBox(height: 5),
+              Text(
+                tacheSelectionnee.motMoore.join(', '),
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.green,
+                ),
               ),
-            ),
-            ...tache.sens.map((s) => Text(s)).toList(),
-          ],
+              ...tacheSelectionnee.sens.map((s) => Text(s)).toList(),
+              const Divider(height: 20, color: Colors.grey),
+              // ✅ Image et détails du mot saisi
+              const Text(
+                "Mot saisi :",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Image.network(tacheSaisie.imageUrl, height: 120),
+              const SizedBox(height: 5),
+              Text(
+                saisie,
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.orange,
+                ),
+              ),
+              ...tacheSaisie.sens.map((s) => Text(s)).toList(),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -212,7 +242,7 @@ class TachesPage extends StatelessWidget {
     );
   }
 
-  // ❌ Erreur
+  // Erreur
   void _showErreurDialog(BuildContext context, Tache tache) {
     ScoreTracker.incrementError(); // compteur
     showDialog(
@@ -239,7 +269,7 @@ class TachesPage extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              tache.motMoore,
+              tache.motMoore.join(', '),
               style: const TextStyle(
                 fontSize: 18,
                 color: Colors.green,
@@ -258,9 +288,7 @@ class TachesPage extends StatelessWidget {
     );
   }
 
-  // Affiche le dialogue avec l'image et le champ texte + bouton Valider
-
-  // 🔁 Liste des tâches
+  // Liste des tâches
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -290,7 +318,7 @@ class TachesPage extends StatelessWidget {
                 child: ListTile(
                   title: Text('Tâche ${tache.id}'),
                   trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () => _showTacheDialog(context, tache),
+                  onTap: () => _showTacheDialog(context, tache, taches),
                 ),
               );
             },

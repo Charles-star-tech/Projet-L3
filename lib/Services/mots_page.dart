@@ -97,23 +97,22 @@ class _MotsPageState extends State<MotsPage> {
     );
     //
 
-    // ✅ Vérifie si la saisie correspond à la transcription phonétique attendue
+    // Vérifie si la saisie correspond à la transcription phonétique attendue
     if (_selectedSensIndex != null &&
         mot.transcriptionsPhonetiques.isNotEmpty &&
         saisie ==
             mot.transcriptionsPhonetiques[_selectedSensIndex!].toLowerCase()) {
       success = true;
     }
-    // 🟧 Vérifie si l’utilisateur a saisi la transcriptionNonPhonetique du mot
+    // Vérifie si l’utilisateur a saisi la transcriptionNonPhonetique du mot
     else if (saisie == mot.transcriptionNonPhonetique.toLowerCase()) {
       existsAlternate = true;
     }
-    // ❌ Sinon → erreur
     else {
       error = true;
     }
 
-    // 📊 Mise à jour des scores
+    // Mise à jour des scores
     if (success) {
       ScoreTracker.transcriptionsCorrectes++;
     } else if (existsAlternate) {
@@ -132,17 +131,6 @@ class _MotsPageState extends State<MotsPage> {
       error,
       _selectedSensIndex,
     );
-
-    // setState(() {
-    //   if (success) {
-    //     _resultMessage =
-    //         "✅ Bravo ! C'est la bonne transcription et le bon sens 🎉";
-    //   } else if (existsAlternate) {
-    //     _resultMessage = "🟧 Mot amalgamé";
-    //   } else {
-    //     _resultMessage = "❌ Erreur, essaie encore.";
-    //   }
-    // });
   }
 
   void _showResultDialog(
@@ -234,7 +222,7 @@ class _MotsPageState extends State<MotsPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1⃣ Sélection du mot (inchangé)
+            // Sélection du mot (inchangé)
             Padding(
               padding: const EdgeInsets.all(16),
               child: DropdownButtonFormField<String>(
@@ -262,7 +250,7 @@ class _MotsPageState extends State<MotsPage> {
               ),
             ),
 
-            // 2⃣ Sélection du sens avec index
+            // Sélection du sens avec index
             if (_selectedWord != null)
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -305,7 +293,7 @@ class _MotsPageState extends State<MotsPage> {
                 ),
               ),
 
-            // 3⃣ Champ transcription phonétique
+            // Champ transcription phonétique
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: TextField(
@@ -317,16 +305,21 @@ class _MotsPageState extends State<MotsPage> {
               ),
             ),
 
-            // 4⃣ Bouton valider
-            ElevatedButton(
-              onPressed: _validerTranscription,
-              child: const Text('Valider'),
+            // Bouton valider
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly, // espace équilibré
+              children: [
+                ElevatedButton(
+                  onPressed: _validerTranscription,
+                  child: const Text('Valider'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Retour'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Retour'),
-            ),
-            // 5⃣ Message de résultat
+            // Message de résultat
             if (_resultMessage != null)
               Padding(
                 padding: const EdgeInsets.all(8),
@@ -345,89 +338,4 @@ class _MotsPageState extends State<MotsPage> {
       ),
     );
   }
-
-  //   @override
-  //   Widget build(BuildContext context) {
-  //     return Scaffold(
-  //       appBar: AppBar(title: const Text('Jeu de transcription')),
-  //       body: SingleChildScrollView(
-  //         child: Column(
-  //           children: [
-  //             Padding(
-  //               padding: const EdgeInsets.all(16),
-  //               child: DropdownButtonFormField<String>(
-  //                 decoration: const InputDecoration(
-  //                   labelText: 'Choisissez un mot (non‑phonétique)',
-  //                   border: OutlineInputBorder(),
-  //                 ),
-  //                 value: _selectedWord,
-  //                 items: _mots.map((m) => m.transcriptionNonPhonetique).toSet().map(
-  //                   (word) => DropdownMenuItem(
-  //                     value: word,
-  //                     child: Text(word),
-  //                   ),
-  //                 ).toList(),
-  //                 onChanged: (v) {
-  //                   setState(() {
-  //                     _selectedWord = v;
-  //                     _selectedSens = null;
-  //                     _controller.clear();
-  //                     _resultMessage = null;
-  //                   });
-  //                 },
-  //               ),
-  //             ),
-  //             if (_selectedWord != null && _selectedWord!.isNotEmpty)
-  //               Padding(
-  //                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  //                 child: DropdownButtonFormField<String>(
-  //                   decoration: const InputDecoration(
-  //                     labelText: 'Choisissez un sens',
-  //                     border: OutlineInputBorder(),
-  //                   ),
-  //                   value: _selectedSens,
-  //                   items: _mots
-  //                       .firstWhere((m) => m.transcriptionNonPhonetique == _selectedWord,
-  //                         orElse: () => Mot(transcriptionNonPhonetique: '', transcriptionsPhonetiques: [], sensLexicaux: []),
-  //                       )
-  //                       .sensLexicaux
-  //                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-  //                       .toList(),
-  //                   onChanged: (value) {
-  //                     setState(() {
-  //                       _selectedSens = value;
-  //                       _resultMessage = null;
-  //                     });
-  //                   },
-  //                   validator: (value) => value == null ? 'Veuillez choisir un sens' : null,
-  //                 ),
-  //               ),
-  //             Padding(
-  //               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  //               child: TextField(
-  //                 controller: _controller,
-  //                 decoration: const InputDecoration(
-  //                   labelText: 'Transcription phonétique',
-  //                   border: OutlineInputBorder(),
-  //                 ),
-  //               ),
-  //             ),
-  //             ElevatedButton(onPressed: _validerTranscription, child: const Text('Valider')),
-  //             if (_resultMessage != null)
-  //               Padding(
-  //                 padding: const EdgeInsets.all(8),
-  //                 child: Text(
-  //                   _resultMessage!,
-  //                   style: TextStyle(
-  //                     color: _resultMessage!.startsWith("Bravo") ? Colors.green : Colors.red,
-  //                     fontWeight: FontWeight.bold,
-  //                   ),
-  //                 ),
-  //               ),
-  //           ],
-  //         ),
-  //       ),
-  //     );
-  //   }
-  // }
 }
